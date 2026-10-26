@@ -9,6 +9,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import date
 
+from power_market.alerting import Alert, send_alert
 from power_market.config import get_settings
 from power_market.log import configure_logging
 from power_market.pipeline import backfill_window, build_pipeline
@@ -91,4 +92,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "results": [r.as_dict() for r in results],
     }
     print(json.dumps(summary, indent=2))
+    if failed:
+        details = "\n".join(f"{r.source}: {r.error}" for r in failed)
+        title = f"power_market {args.command}: {len(failed)} of {len(results)} sources failed"
+        send_alert(Alert(title=title, message=details), settings)
     return 1 if failed else 0

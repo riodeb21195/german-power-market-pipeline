@@ -50,3 +50,10 @@ jobs:
       - run: make dbt-freshness
       - name: dbt build (the sample is old, so the recency test is skipped)
         run: make dbt-build DBT_ARGS="--exclude tag:live_data"
+
+  airflow:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the Airflow image and check the DAG
+        run: make dag-check
