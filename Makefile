@@ -29,7 +29,7 @@ lint: ## ruff, mypy, sqlfluff
 	$(UV) ruff check .
 	$(UV) ruff format --check .
 	$(UV) mypy src
-	$(UV) sqlfluff lint src/power_market/sql dbt
+	$(UV) sqlfluff lint src/power_market/sql dbt metabase/questions
 
 .PHONY: format
 format: ## Format Python code
