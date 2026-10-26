@@ -101,12 +101,15 @@ def test_backfill_rejects_reversed_range(
     assert fake.calls == []
 
 
-def test_failed_source_gives_exit_code_1(
-    fake: FakePipeline, capsys: pytest.CaptureFixture[str]
+def test_failed_source_gives_exit_code_1_and_alerts(
+    fake: FakePipeline, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    alerts: list[Any] = []
+    monkeypatch.setattr(cli, "send_alert", lambda alert, settings: alerts.append(alert))
     fake.fail = True
     assert cli.main(["run"]) == 1
     assert json.loads(capsys.readouterr().out)["failed"] == 1
+    assert alerts[0].title.startswith("power_market run: 1 of")
 
 
 def test_unknown_slug_is_rejected(fake: FakePipeline) -> None:

@@ -11,3 +11,4 @@ SQL
 }
 
 create_db "$WAREHOUSE_DB" "$WAREHOUSE_USER" "$WAREHOUSE_PASSWORD"
+create_db airflow airflow "$AIRFLOW_DB_PASSWORD"

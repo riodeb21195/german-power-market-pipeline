@@ -53,6 +53,11 @@ backfill: ## Load a date range: make backfill START=2023-01-01 [END=2023-12-31]
 	@test -n "$(START)" || (echo "Usage: make backfill START=YYYY-MM-DD [END=YYYY-MM-DD]" && exit 1)
 	$(UV) python -m power_market backfill --start $(START) $(if $(END),--end $(END))
 
+.PHONY: dag-check
+dag-check: ## Build the Airflow image and check the DAG inside it
+	docker build -q -f airflow/Dockerfile -t power-market-airflow:check .
+	docker run --rm --entrypoint python power-market-airflow:check /opt/airflow/tests/check_dags.py
+
 .PHONY: dbt-build
 dbt-build: ## Seed, run and test the dbt project (TARGET=dev|prod)
 	$(DBT) deps
