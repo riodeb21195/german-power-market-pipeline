@@ -19,6 +19,10 @@ requires = ["uv_build>=0.11.19,<0.12.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
+dbt = [
+    "dbt-core==1.12.6",
+    "dbt-postgres==1.11.0",
+]
 dev = [
     "boto3-stubs[s3]>=1.43.118",
     "mypy>=2.4.0",
@@ -29,6 +33,9 @@ dev = [
     "sqlfluff>=4.4.0",
     "testcontainers[postgres]>=4.15.0",
 ]
+
+[tool.uv]
+default-groups = ["dev", "dbt"]
 
 [tool.ruff]
 line-length = 100

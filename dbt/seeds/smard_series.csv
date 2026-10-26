@@ -1,0 +1,15 @@
+smard_filter_id,region,series_slug,kind,unit,category,is_renewable,required_for_completeness
+4169,DE-LU,day_ahead_price,price,EUR/MWh,,,
+410,DE,grid_load,load,MWh,,,
+4066,DE,biomass,generation,MWh,renewable,true,true
+1226,DE,hydro,generation,MWh,renewable,true,true
+1225,DE,wind_offshore,generation,MWh,renewable,true,true
+4067,DE,wind_onshore,generation,MWh,renewable,true,true
+4068,DE,solar,generation,MWh,renewable,true,true
+1228,DE,other_renewable,generation,MWh,renewable,true,true
+1224,DE,nuclear,generation,MWh,conventional,false,false
+1223,DE,lignite,generation,MWh,conventional,false,true
+4069,DE,hard_coal,generation,MWh,conventional,false,true
+4071,DE,natural_gas,generation,MWh,conventional,false,true
+4070,DE,pumped_storage,generation,MWh,storage,false,true
+1227,DE,other_conventional,generation,MWh,conventional,false,true

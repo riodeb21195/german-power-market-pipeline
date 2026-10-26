@@ -35,3 +35,5 @@ def configure_logging(level: str = "INFO") -> None:
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(JsonFormatter())
     root.addHandler(handler)
+    # one line per HTTP request is noise; failures are logged by our own client
+    logging.getLogger("httpx").setLevel(logging.WARNING)

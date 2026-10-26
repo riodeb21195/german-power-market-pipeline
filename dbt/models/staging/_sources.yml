@@ -1,0 +1,15 @@
+sources:
+  - name: raw
+    description: Tables written by the Python loader (one row per natural key, latest value wins).
+    schema: raw
+    config:
+      # loaded_at only changes when a row is inserted or its data changes
+      loaded_at_field: loaded_at
+      freshness:
+        warn_after: {count: 30, period: hour}
+        error_after: {count: 54, period: hour}
+    tables:
+      - name: smard_timeseries
+        description: Hourly SMARD values in UTC (EUR/MWh for prices, MWh otherwise).
+      - name: weather_hourly
+        description: Hourly Open-Meteo archive values per location in UTC.

@@ -1,0 +1,43 @@
+seeds:
+  - name: smard_series
+    description: >
+      All SMARD series the pipeline loads, with the classification of the generation series.
+      Pumped storage is generation from storage, so it counts in the total but not as renewable.
+      Nuclear is not required for completeness (shutdown 2023-04-15, series ends January 2024).
+    config:
+      column_types:
+        smard_filter_id: integer
+    columns:
+      - name: smard_filter_id
+        description: SMARD filter id.
+        data_tests:
+          - unique
+          - not_null
+      - name: series_slug
+        description: Name of the series, matches the Python extractor.
+        data_tests:
+          - unique
+          - not_null
+      - name: kind
+        description: price, load or generation.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["price", "load", "generation"]
+      - name: category
+        description: renewable, conventional or storage (generation only).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["renewable", "conventional", "storage"]
+
+  - name: weather_locations
+    description: Weather points used as a proxy for wind, solar and load conditions in Germany.
+    columns:
+      - name: location_slug
+        description: Location key, matches the Python extractor.
+        data_tests:
+          - unique
+          - not_null
+      - name: region
+        description: Part of Germany the point stands for.

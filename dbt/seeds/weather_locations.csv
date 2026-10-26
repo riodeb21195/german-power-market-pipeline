@@ -1,0 +1,7 @@
+location_slug,location_name,latitude,longitude,region,rationale
+husum,Husum,54.4858,9.05239,north,"North Sea coast, onshore wind"
+hamburg,Hamburg,53.55073,9.99302,north,"Northern Germany, wind and load"
+berlin,Berlin,52.52437,13.41053,east,"Eastern Germany, load centre"
+cologne,Cologne,50.93333,6.95,west,"Rhine-Ruhr, largest load centre"
+frankfurt,Frankfurt am Main,50.11552,8.68417,central,Central Germany
+munich,Munich,48.13743,11.57549,south,"Southern Germany, high solar output"

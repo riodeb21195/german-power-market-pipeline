@@ -1,0 +1,84 @@
+models:
+  - name: int_generation_hourly
+    description: Generation per hour and energy source.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ["hour_utc", "energy_source_slug"]
+    columns:
+      - name: generation_mwh
+        description: Generation in MWh.
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+
+  - name: int_market_hourly
+    description: Day-ahead price (DE-LU) and grid load (DE) per hour.
+    columns:
+      - name: hour_utc
+        description: Start of the hour, UTC.
+        data_tests:
+          - unique
+          - not_null
+
+  - name: int_power_hourly
+    description: Hourly totals, renewable share and completeness flag.
+    columns:
+      - name: hour_utc
+        description: Start of the hour, UTC.
+        data_tests:
+          - unique
+          - not_null
+      - name: renewable_share
+        description: Renewable generation divided by total generation (0-1).
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: is_complete
+        description: >
+          Price, load and every required generation source are present. Recent hours stay
+          incomplete until SMARD has published the slower series.
+
+  - name: int_weather_hourly
+    description: Mean weather over all locations per hour, plus mean wind over the northern ones.
+    columns:
+      - name: hour_utc
+        description: Start of the hour, UTC.
+        data_tests:
+          - unique
+          - not_null
+
+unit_tests:
+  - name: renewable_share_and_completeness
+    description: >
+      Only renewable sources count towards the share, pumped storage is part of the total, and an
+      hour without every required source is not complete.
+    model: int_power_hourly
+    given:
+      - input: ref('int_generation_hourly')
+        rows:
+          - {hour_utc: "2026-01-01 00:00:00+00", energy_source_slug: wind_onshore, category: renewable, is_renewable: true, required_for_completeness: true, generation_mwh: 60}
+          - {hour_utc: "2026-01-01 00:00:00+00", energy_source_slug: lignite, category: conventional, is_renewable: false, required_for_completeness: true, generation_mwh: 30}
+          - {hour_utc: "2026-01-01 00:00:00+00", energy_source_slug: pumped_storage, category: storage, is_renewable: false, required_for_completeness: true, generation_mwh: 10}
+          - {hour_utc: "2026-01-01 01:00:00+00", energy_source_slug: wind_onshore, category: renewable, is_renewable: true, required_for_completeness: true, generation_mwh: 50}
+          - {hour_utc: "2026-01-01 01:00:00+00", energy_source_slug: lignite, category: conventional, is_renewable: false, required_for_completeness: true, generation_mwh: 50}
+      - input: ref('int_market_hourly')
+        rows:
+          - {hour_utc: "2026-01-01 00:00:00+00", price_eur_mwh: 42.0, grid_load_mwh: 100}
+          - {hour_utc: "2026-01-01 01:00:00+00", price_eur_mwh: 55.0, grid_load_mwh: 100}
+      - input: ref('smard_series')
+        format: csv
+        rows: |
+          smard_filter_id,region,series_slug,kind,unit,category,is_renewable,required_for_completeness
+          4067,DE,wind_onshore,generation,MWh,renewable,true,true
+          1223,DE,lignite,generation,MWh,conventional,false,true
+          4070,DE,pumped_storage,generation,MWh,storage,false,true
+          1224,DE,nuclear,generation,MWh,conventional,false,false
+    expect:
+      rows:
+        - {hour_utc: "2026-01-01 00:00:00+00", total_generation_mwh: 100, renewable_share: 0.6, storage_generation_mwh: 10, wind_generation_mwh: 60, is_complete: true}
+        - {hour_utc: "2026-01-01 01:00:00+00", total_generation_mwh: 100, renewable_share: 0.5, storage_generation_mwh: 0, wind_generation_mwh: 50, is_complete: false}

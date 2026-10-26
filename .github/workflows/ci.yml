@@ -19,3 +19,34 @@ jobs:
       - run: uv sync --all-groups --frozen
       - run: make lint
       - run: make test
+
+  dbt:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18.6-alpine
+        env:
+          POSTGRES_USER: warehouse
+          POSTGRES_PASSWORD: warehouse
+          POSTGRES_DB: warehouse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U warehouse"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      WAREHOUSE_HOST: localhost
+      WAREHOUSE_PASSWORD: warehouse
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          enable-cache: true
+      - run: uv sync --all-groups --frozen
+      - name: Load one real sample week into raw.*
+        run: make sample-data
+      - run: make dbt-freshness
+      - name: dbt build (the sample is old, so the recency test is skipped)
+        run: make dbt-build DBT_ARGS="--exclude tag:live_data"

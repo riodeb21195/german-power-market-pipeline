@@ -1,0 +1,38 @@
+name: power_market
+version: "1.0.0"
+profile: power_market
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+clean-targets: ["target", "dbt_packages"]
+
+flags:
+  require_generic_test_arguments_property: true
+
+vars:
+  analysis_start_date: "2023-01-01"
+  analysis_timezone: "Europe/Berlin"
+  # SDAC harmonised clearing price limits (min -600 since 2026-05-28, max 5000 since 2022-09-20)
+  price_floor_eur_mwh: -600
+  price_cap_eur_mwh: 5000
+
+models:
+  power_market:
+    +persist_docs:
+      relation: true
+      columns: true
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: table
+      +schema: intermediate
+    marts:
+      +materialized: table
+      +schema: marts
+
+seeds:
+  power_market:
+    +schema: reference
