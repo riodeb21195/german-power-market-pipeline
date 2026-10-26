@@ -40,6 +40,15 @@ test: ## Unit and integration tests with coverage
 test-unit: ## Unit tests only (no Docker needed)
 	$(UV) pytest -m "not integration" --cov-fail-under=0
 
+.PHONY: run
+run: ## One incremental run from the CLI
+	$(UV) python -m power_market run
+
+.PHONY: backfill
+backfill: ## Load a date range: make backfill START=2023-01-01 [END=2023-12-31]
+	@test -n "$(START)" || (echo "Usage: make backfill START=YYYY-MM-DD [END=YYYY-MM-DD]" && exit 1)
+	$(UV) python -m power_market backfill --start $(START) $(if $(END),--end $(END))
+
 .PHONY: clean
 clean: ## Remove caches and build artefacts
 	rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov .coverage coverage.xml dist build
