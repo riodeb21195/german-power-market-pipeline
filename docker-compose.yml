@@ -46,6 +46,7 @@ services:
       WAREHOUSE_USER: ${WAREHOUSE_USER:-warehouse}
       WAREHOUSE_PASSWORD: ${WAREHOUSE_PASSWORD:?set WAREHOUSE_PASSWORD in .env}
       AIRFLOW_DB_PASSWORD: ${AIRFLOW_DB_PASSWORD:?set AIRFLOW_DB_PASSWORD in .env}
+      METABASE_DB_PASSWORD: ${METABASE_DB_PASSWORD:?set METABASE_DB_PASSWORD in .env}
     command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=100"]
     ports:
       - "5432:5432"
@@ -61,7 +62,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 768m
     logging: *default-logging
 
   # S3-compatible landing zone. Silo is the maintained fork of MinIO (same API and settings).
@@ -172,6 +173,38 @@ services:
       resources:
         limits:
           memory: 512m
+
+  # optional BI layer: make up PROFILES=bi
+  metabase:
+    image: metabase/metabase:v0.64.3.4
+    profiles: ["bi"]
+    restart: unless-stopped
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_HOST: postgres
+      MB_DB_PORT: "5432"
+      MB_DB_DBNAME: metabase
+      MB_DB_USER: metabase
+      MB_DB_PASS: ${METABASE_DB_PASSWORD:?set METABASE_DB_PASSWORD in .env}
+      MB_ANON_TRACKING_ENABLED: "false"
+      MB_CHECK_FOR_UPDATES: "false"
+      JAVA_OPTS: -Xmx768m -XX:+UseSerialGC
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 1600m
+    logging: *default-logging
 
 volumes:
   postgres-data:
