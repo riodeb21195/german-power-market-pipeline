@@ -1,6 +1,10 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 UV := uv run
+TARGET ?= dev
+DBT_ARGS ?=
+# dbt reads the connection from the environment; load .env when it exists
+DBT := set -a; [ -f .env ] && . ./.env; set +a; cd dbt && DBT_PROFILES_DIR=. DBT_TARGET=$(TARGET) uv run dbt
 
 .PHONY: help
 help: ## Show available targets
@@ -25,7 +29,7 @@ lint: ## ruff, mypy, sqlfluff
 	$(UV) ruff check .
 	$(UV) ruff format --check .
 	$(UV) mypy src
-	$(UV) sqlfluff lint src/power_market/sql
+	$(UV) sqlfluff lint src/power_market/sql dbt
 
 .PHONY: format
 format: ## Format Python code
@@ -49,7 +53,27 @@ backfill: ## Load a date range: make backfill START=2023-01-01 [END=2023-12-31]
 	@test -n "$(START)" || (echo "Usage: make backfill START=YYYY-MM-DD [END=YYYY-MM-DD]" && exit 1)
 	$(UV) python -m power_market backfill --start $(START) $(if $(END),--end $(END))
 
+.PHONY: dbt-build
+dbt-build: ## Seed, run and test the dbt project (TARGET=dev|prod)
+	$(DBT) deps
+	$(DBT) build $(DBT_ARGS)
+
+.PHONY: dbt-freshness
+dbt-freshness: ## Check source freshness
+	$(DBT) deps
+	$(DBT) source freshness
+
+.PHONY: dbt-docs
+dbt-docs: ## Data dictionary on http://localhost:8081
+	$(DBT) deps
+	$(DBT) docs generate && $(DBT) docs serve --port 8081
+
+.PHONY: sample-data
+sample-data: ## Replace raw.* with the committed sample week (used by CI)
+	$(UV) python scripts/load_sample_data.py
+
 .PHONY: clean
 clean: ## Remove caches and build artefacts
 	rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov .coverage coverage.xml dist build
+	rm -rf dbt/target dbt/logs dbt/dbt_packages
 	find . -type d -name __pycache__ -not -path './.venv/*' -exec rm -rf {} +

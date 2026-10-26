@@ -1,0 +1,22 @@
+# Connection details come from environment variables (see .env.example).
+power_market:
+  target: "{{ env_var('DBT_TARGET', 'dev') }}"
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('WAREHOUSE_HOST', 'localhost') }}"
+      port: "{{ env_var('WAREHOUSE_PORT', '5432') | as_number }}"
+      dbname: "{{ env_var('WAREHOUSE_DB', 'warehouse') }}"
+      user: "{{ env_var('WAREHOUSE_USER', 'warehouse') }}"
+      password: "{{ env_var('WAREHOUSE_PASSWORD') }}"
+      schema: dev
+      threads: 4
+    prod:
+      type: postgres
+      host: "{{ env_var('WAREHOUSE_HOST', 'localhost') }}"
+      port: "{{ env_var('WAREHOUSE_PORT', '5432') | as_number }}"
+      dbname: "{{ env_var('WAREHOUSE_DB', 'warehouse') }}"
+      user: "{{ env_var('WAREHOUSE_USER', 'warehouse') }}"
+      password: "{{ env_var('WAREHOUSE_PASSWORD') }}"
+      schema: analytics
+      threads: 4

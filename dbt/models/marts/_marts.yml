@@ -1,0 +1,183 @@
+models:
+  - name: dim_date
+    description: Local calendar (Europe/Berlin) from the analysis start to two days ahead.
+    columns:
+      - name: date_key
+        description: yyyymmdd.
+        data_tests:
+          - unique
+          - not_null
+      - name: season
+        description: Meteorological season (winter = Dec-Feb, spring = Mar-May, ...).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["winter", "spring", "summer", "autumn"]
+      - name: hours_in_day
+        description: 24, or 23/25 on daylight saving time switch days.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [23, 24, 25]
+                quote: false
+
+  - name: dim_hour
+    description: Local hour of the day.
+    columns:
+      - name: hour_key
+        description: 0-23, local time.
+        data_tests:
+          - unique
+          - not_null
+
+  - name: dim_energy_source
+    description: Generation series from SMARD with their classification.
+    columns:
+      - name: energy_source_key
+        description: Surrogate key.
+        data_tests:
+          - unique
+          - not_null
+      - name: category
+        description: renewable, conventional or storage.
+
+  - name: fct_power_hourly
+    description: >
+      One row per hour (UTC): day-ahead price, grid load, generation totals, renewable share and
+      the national weather proxy. Filter on `is_complete` for analysis.
+    data_tests:
+      - dbt_utils.recency:
+          arguments:
+            datepart: hour
+            field: hour_utc
+            interval: 54
+          config:
+            where: "is_complete"
+            tags: ["live_data"]
+    columns:
+      - name: hour_utc
+        description: Start of the hour, UTC.
+        data_tests:
+          - unique
+          - not_null
+      - name: hour_local
+        description: Start of the hour as German wall-clock time.
+      - name: date_key
+        description: Local date.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: hour_key
+        description: Local hour of day.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_hour')
+                field: hour_key
+      - name: price_eur_mwh
+        description: Day-ahead price of the DE-LU bidding zone, EUR/MWh.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: "{{ var('price_floor_eur_mwh') }}"
+                max_value: "{{ var('price_cap_eur_mwh') }}"
+      - name: grid_load_mwh
+        description: Grid load, MWh.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 20000
+                max_value: 100000
+      - name: renewable_share
+        description: Renewable share of generation, 0-1.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: is_complete
+        description: All required values present.
+        data_tests:
+          - not_null
+      - name: avg_wind_speed_100m_ms
+        description: Mean wind speed at 100 m over all locations, m/s.
+      - name: north_wind_speed_100m_ms
+        description: Mean wind speed at 100 m over Husum and Hamburg, m/s.
+      - name: avg_shortwave_radiation_w_m2
+        description: Mean global horizontal irradiance over all locations, W/m².
+
+  - name: fct_generation_hourly
+    description: One row per hour and energy source.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ["hour_utc", "energy_source_key"]
+    columns:
+      - name: energy_source_key
+        description: Energy source.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_energy_source')
+                field: energy_source_key
+      - name: date_key
+        description: Local date.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: hour_key
+        description: Local hour of day.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_hour')
+                field: hour_key
+      - name: generation_mwh
+        description: Generation, MWh.
+        data_tests:
+          - not_null
+
+  - name: mart_hourly_profile
+    description: >
+      Average price and renewable share per season, weekday and local hour over all complete
+      hours. `price_rank = 1` is the cheapest hour of that weekday in that season,
+      `green_rank = 1` the greenest.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ["season", "iso_day_of_week", "hour_of_day"]
+    columns:
+      - name: hours_observed
+        description: Number of complete hours behind the averages.
+      - name: price_rank
+        description: Rank by mean price within season and weekday (1 = cheapest).
+        data_tests:
+          - not_null
+      - name: green_rank
+        description: Rank by renewable share within season and weekday (1 = greenest).
+        data_tests:
+          - not_null
+
+  - name: mart_weather_correlation
+    description: >
+      Pearson correlation of weather with price and renewable share per season and overall
+      (`season = 'all'`), plus the slope of price over wind speed. Correlation, not causation.
+    columns:
+      - name: season
+        description: Season or `all`.
+        data_tests:
+          - unique
+      - name: corr_price_wind
+        description: Correlation of price with mean wind speed at 100 m.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: -1
+                max_value: 1

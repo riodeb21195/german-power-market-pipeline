@@ -1,0 +1,67 @@
+models:
+  - name: stg_smard__timeseries
+    description: SMARD series from the first local analysis day on. One row per series and hour.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ["filter_id", "region", "hour_utc"]
+    columns:
+      - name: filter_id
+        description: SMARD filter id.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('smard_series')
+                field: smard_filter_id
+      - name: hour_utc
+        description: Start of the hour, UTC.
+        data_tests:
+          - not_null
+      - name: value
+        description: EUR/MWh for the price, MWh for load and generation.
+        data_tests:
+          - not_null
+
+  - name: stg_open_meteo__weather
+    description: Hourly weather per location with units in the column names.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ["location_slug", "hour_utc"]
+    columns:
+      - name: location_slug
+        description: Location key.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('weather_locations')
+                field: location_slug
+      - name: temperature_c
+        description: Air temperature at 2 m, °C.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: -40
+                max_value: 50
+      - name: wind_speed_100m_ms
+        description: Wind speed at 100 m, m/s (converted from km/h).
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 75
+      - name: shortwave_radiation_w_m2
+        description: Global horizontal irradiance, W/m².
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1400
+      - name: cloud_cover_pct
+        description: Total cloud cover, %.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
