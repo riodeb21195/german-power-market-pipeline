@@ -176,7 +176,7 @@ services:
 
   # optional BI layer: make up PROFILES=bi
   metabase:
-    image: metabase/metabase:v0.64.3.4
+    image: metabase/metabase:v0.65.2.3
     profiles: ["bi"]
     restart: unless-stopped
     environment:
