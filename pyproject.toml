@@ -20,7 +20,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dbt = [
-    "dbt-core==1.12.6",
+    "dbt-core==1.12.7",
     "dbt-postgres==1.11.0",
 ]
 dev = [
